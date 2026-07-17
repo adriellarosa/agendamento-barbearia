@@ -3,6 +3,24 @@ import { supabase } from "../lib/supabaseClient";
 
 const TIMES = ["09:00", "09:30", "10:00", "10:30", "11:30", "14:00", "14:30", "15:00", "16:00", "16:30", "17:00"];
 
+const WEEKDAYS = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
+
+function getNextDays(count) {
+  const days = [];
+  for (let i = 0; i < count; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() + i);
+    days.push(d);
+  }
+  return days;
+}
+
+function formatDateLabel(date, index) {
+  if (index === 0) return "Hoje";
+  if (index === 1) return "Amanhã";
+  return `${WEEKDAYS[date.getDay()]} ${date.getDate()}`;
+}
+
 export default function Home() {
   const [barbershop, setBarbershop] = useState(null);
   const [services, setServices] = useState([]);
@@ -13,6 +31,7 @@ export default function Home() {
   const [step, setStep] = useState(1);
   const [service, setService] = useState(null);
   const [professional, setProfessional] = useState(null);
+  const [date, setDate] = useState(null);
   const [time, setTime] = useState(null);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -63,6 +82,7 @@ export default function Home() {
     setStep(1);
     setService(null);
     setProfessional(null);
+    setDate(null);
     setTime(null);
     setName("");
     setPhone("");
@@ -84,9 +104,8 @@ export default function Home() {
       return;
     }
 
-    const today = new Date();
     const [hours, minutes] = time.split(":").map(Number);
-    const startTime = new Date(today);
+    const startTime = new Date(date);
     startTime.setHours(hours, minutes, 0, 0);
     const endTime = new Date(startTime.getTime() + service.duration_minutes * 60000);
 
@@ -138,7 +157,7 @@ export default function Home() {
         <Header step={step} onBack={step > 1 && !done ? goBack : null} shopName={barbershop.name} />
 
         {done ? (
-          <Confirmation service={service} professional={professional} time={time} name={name} onReset={reset} />
+          <Confirmation service={service} professional={professional} date={date} time={time} name={name} onReset={reset} />
         ) : (
           <>
             {step === 1 && (
@@ -148,9 +167,12 @@ export default function Home() {
               <StepProfessional professionals={allProfessionals} selected={professional} onSelect={(p) => { setProfessional(p); setStep(3); }} />
             )}
             {step === 3 && (
-              <StepTime selected={time} onSelect={(t) => { setTime(t); setStep(4); }} />
+              <StepDate selected={date} onSelect={(d) => { setDate(d); setStep(4); }} />
             )}
             {step === 4 && (
+              <StepTime selected={time} onSelect={(t) => { setTime(t); setStep(5); }} />
+            )}
+            {step === 5 && (
               <StepDetails
                 name={name}
                 phone={phone}
@@ -158,6 +180,7 @@ export default function Home() {
                 setPhone={setPhone}
                 onConfirm={confirmBooking}
                 service={service}
+                date={date}
                 time={time}
                 saving={saving}
               />
@@ -222,10 +245,33 @@ function StepProfessional({ professionals, selected, onSelect }) {
   );
 }
 
+function StepDate({ selected, onSelect }) {
+  const days = getNextDays(7);
+  return (
+    <div style={styles.stepBody}>
+      <Eyebrow n="03" label="Escolha o dia" />
+      <div style={styles.grid}>
+        {days.map((d, i) => {
+          const isSelected = selected && d.toDateString() === selected.toDateString();
+          return (
+            <button
+              key={i}
+              onClick={() => onSelect(d)}
+              style={{ ...styles.timeCell, borderColor: isSelected ? "#C9924A" : "#2A2622", color: isSelected ? "#C9924A" : "#E8DDD0" }}
+            >
+              {formatDateLabel(d, i)}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function StepTime({ selected, onSelect }) {
   return (
     <div style={styles.stepBody}>
-      <Eyebrow n="03" label="Escolha o horário" />
+      <Eyebrow n="04" label="Escolha o horário" />
       <div style={styles.grid}>
         {TIMES.map((t) => (
           <button key={t} onClick={() => onSelect(t)} style={{ ...styles.timeCell, borderColor: selected === t ? "#C9924A" : "#2A2622", color: selected === t ? "#C9924A" : "#E8DDD0" }}>
@@ -237,13 +283,14 @@ function StepTime({ selected, onSelect }) {
   );
 }
 
-function StepDetails({ name, phone, setName, setPhone, onConfirm, service, time, saving }) {
+function StepDetails({ name, phone, setName, setPhone, onConfirm, service, date, time, saving }) {
   const canConfirm = name.trim().length > 1 && phone.trim().length > 7 && !saving;
+  const dateStr = date ? date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) : "";
   return (
     <div style={styles.stepBody}>
-      <Eyebrow n="04" label="Seus dados" />
+      <Eyebrow n="05" label="Seus dados" />
       <div style={styles.summaryBox}>
-        <span style={styles.summaryText}>{service?.name} às {time}</span>
+        <span style={styles.summaryText}>{service?.name} em {dateStr} às {time}</span>
       </div>
       <input placeholder="Seu nome" value={name} onChange={(e) => setName(e.target.value)} style={styles.input} />
       <input placeholder="WhatsApp (com DDD)" value={phone} onChange={(e) => setPhone(e.target.value)} style={styles.input} />
@@ -254,7 +301,8 @@ function StepDetails({ name, phone, setName, setPhone, onConfirm, service, time,
   );
 }
 
-function Confirmation({ service, professional, time, name, onReset }) {
+function Confirmation({ service, professional, date, time, name, onReset }) {
+  const dateStr = date ? date.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "2-digit" }) : "";
   return (
     <div style={styles.stepBody}>
       <div style={styles.checkCircle}>✓</div>
@@ -262,7 +310,8 @@ function Confirmation({ service, professional, time, name, onReset }) {
       <div style={styles.confirmDetails}>
         <DetailLine label="Serviço" value={service?.name} />
         <DetailLine label="Profissional" value={professional?.name} />
-        <DetailLine label="Horário" value={`Hoje às ${time}`} />
+        <DetailLine label="Data" value={dateStr} />
+        <DetailLine label="Horário" value={time} />
       </div>
       <button onClick={onReset} style={styles.secondaryBtn}>Fazer novo agendamento</button>
     </div>
