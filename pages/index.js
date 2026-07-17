@@ -33,6 +33,8 @@ export default function Home() {
   const [professional, setProfessional] = useState(null);
   const [date, setDate] = useState(null);
   const [time, setTime] = useState(null);
+  const [bookedTimes, setBookedTimes] = useState([]);
+  const [loadingTimes, setLoadingTimes] = useState(false);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [done, setDone] = useState(false);
@@ -77,6 +79,36 @@ export default function Home() {
   }, []);
 
   const goBack = () => setStep((s) => Math.max(1, s - 1));
+
+  const checkAvailability = async (chosenDate) => {
+    setLoadingTimes(true);
+    const dayStart = new Date(chosenDate);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(chosenDate);
+    dayEnd.setHours(23, 59, 59, 999);
+
+    let query = supabase
+      .from("appointments")
+      .select("start_time")
+      .eq("barbershop_id", barbershop.id)
+      .gte("start_time", dayStart.toISOString())
+      .lte("start_time", dayEnd.toISOString())
+      .neq("status", "cancelled");
+
+    if (professional.id !== "qualquer") {
+      query = query.eq("professional_id", professional.id);
+    }
+
+    const { data } = await query;
+
+    const booked = (data || []).map((a) => {
+      const d = new Date(a.start_time);
+      return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+    });
+
+    setBookedTimes(booked);
+    setLoadingTimes(false);
+  };
 
   const reset = () => {
     setStep(1);
@@ -167,10 +199,10 @@ export default function Home() {
               <StepProfessional professionals={allProfessionals} selected={professional} onSelect={(p) => { setProfessional(p); setStep(3); }} />
             )}
             {step === 3 && (
-              <StepDate selected={date} onSelect={(d) => { setDate(d); setStep(4); }} />
+              <StepDate selected={date} onSelect={(d) => { setDate(d); checkAvailability(d); setStep(4); }} />
             )}
             {step === 4 && (
-              <StepTime selected={time} onSelect={(t) => { setTime(t); setStep(5); }} />
+              <StepTime selected={time} bookedTimes={bookedTimes} loading={loadingTimes} onSelect={(t) => { setTime(t); setStep(5); }} />
             )}
             {step === 5 && (
               <StepDetails
@@ -268,17 +300,36 @@ function StepDate({ selected, onSelect }) {
   );
 }
 
-function StepTime({ selected, onSelect }) {
+function StepTime({ selected, bookedTimes, loading, onSelect }) {
   return (
     <div style={styles.stepBody}>
       <Eyebrow n="04" label="Escolha o horário" />
-      <div style={styles.grid}>
-        {TIMES.map((t) => (
-          <button key={t} onClick={() => onSelect(t)} style={{ ...styles.timeCell, borderColor: selected === t ? "#C9924A" : "#2A2622", color: selected === t ? "#C9924A" : "#E8DDD0" }}>
-            {t}
-          </button>
-        ))}
-      </div>
+      {loading ? (
+        <p style={{ color: "#8A8378", fontFamily: "sans-serif", fontSize: 13 }}>Verificando horários...</p>
+      ) : (
+        <div style={styles.grid}>
+          {TIMES.map((t) => {
+            const isBooked = bookedTimes.includes(t);
+            return (
+              <button
+                key={t}
+                onClick={() => !isBooked && onSelect(t)}
+                disabled={isBooked}
+                style={{
+                  ...styles.timeCell,
+                  borderColor: selected === t ? "#C9924A" : "#2A2622",
+                  color: isBooked ? "#4A453D" : selected === t ? "#C9924A" : "#E8DDD0",
+                  textDecoration: isBooked ? "line-through" : "none",
+                  cursor: isBooked ? "not-allowed" : "pointer",
+                  opacity: isBooked ? 0.5 : 1,
+                }}
+              >
+                {t}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
