@@ -102,4 +102,7 @@ const styles = {
   productRow: { display: "flex", alignItems: "center", justifyContent: "space-between", border: "1px solid #2A2622", borderRadius: 3, padding: "14px 16px" },
   productName: { fontFamily: "sans-serif", fontSize: 14, color: "#E8DDD0" },
   productDesc: { fontFamily: "sans-serif", fontSize: 11, color: "#8A8378", marginTop: 3 },
-  productBrand: { fontFamily: "sans-serif", fontSize: 10, color: "#C9924A", textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 2
+  productBrand: { fontFamily: "sans-serif", fontSize: 10, color: "#C9924A", textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 2 },
+  productPrice: { fontFamily: "sans-serif", fontSize: 14, color: "#C9924A" },
+  footnote: { fontFamily: "sans-serif", fontSize: 11, color: "#6B6459", marginTop: 20, textAlign: "center" },
+};
