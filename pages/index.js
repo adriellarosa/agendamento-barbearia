@@ -419,4 +419,3 @@ const styles = {
   detailLabel: { color: "#8A8378" },
   detailValue: { color: "#E8DDD0" },
 };
-}
