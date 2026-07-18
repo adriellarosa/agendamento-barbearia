@@ -23,41 +23,58 @@ export default function Admin() {
   useEffect(() => {
     if (!authenticated) return;
 
-    async function loadAppointments() {
-      const { data: shops } = await supabase.from("barbershops").select("*").limit(1);
-
-      if (!shops || shops.length === 0) {
-        setError("Nenhuma barbearia cadastrada ainda.");
-        setLoading(false);
-        return;
-      }
-
-      setShopName(shops[0].name);
-
-      const { data, error: apptError } = await supabase
-        .from("appointments")
-        .select(
-          `id, start_time, status,
-           clients(name, phone),
-           services(name, price),
-           professionals(name)`
-        )
-        .eq("barbershop_id", shops[0].id)
-        .neq("status", "cancelled")
-        .order("start_time", { ascending: true });
-
-      if (apptError) {
-        setError("Erro ao carregar agendamentos: " + apptError.message);
-        setLoading(false);
-        return;
-      }
-
-      setAppointments(data || []);
-      setLoading(false);
-    }
-
     loadAppointments();
   }, [authenticated]);
+
+  async function loadAppointments() {
+    const { data: shops } = await supabase.from("barbershops").select("*").limit(1);
+
+    if (!shops || shops.length === 0) {
+      setError("Nenhuma barbearia cadastrada ainda.");
+      setLoading(false);
+      return;
+    }
+
+    setShopName(shops[0].name);
+
+    const { data, error: apptError } = await supabase
+      .from("appointments")
+      .select(
+        `id, start_time, status,
+         clients(name, phone),
+         services(name, price),
+         professionals(name)`
+      )
+      .eq("barbershop_id", shops[0].id)
+      .neq("status", "cancelled")
+      .order("start_time", { ascending: true });
+
+    if (apptError) {
+      setError("Erro ao carregar agendamentos: " + apptError.message);
+      setLoading(false);
+      return;
+    }
+
+    setAppointments(data || []);
+    setLoading(false);
+  }
+
+  const cancelAppointment = async (id) => {
+    const confirmed = window.confirm("Cancelar este agendamento e liberar o horário?");
+    if (!confirmed) return;
+
+    const { error: cancelError } = await supabase
+      .from("appointments")
+      .update({ status: "cancelled" })
+      .eq("id", id);
+
+    if (cancelError) {
+      alert("Erro ao cancelar: " + cancelError.message);
+      return;
+    }
+
+    setAppointments((prev) => prev.filter((a) => a.id !== id));
+  };
 
   const grouped = {};
   appointments.forEach((a) => {
@@ -128,7 +145,7 @@ export default function Admin() {
                     <div style={styles.subInfo}>{a.services?.name} · {a.professionals?.name || "Qualquer profissional"}</div>
                     <div style={styles.subInfo}>{a.clients?.phone}</div>
                   </div>
-                  <div style={styles.status}>{a.status}</div>
+                  <button onClick={() => cancelAppointment(a.id)} style={styles.cancelBtn}>Cancelar</button>
                 </div>
               );
             })}
@@ -238,5 +255,16 @@ const styles = {
     fontFamily: "sans-serif",
     fontSize: 11,
     textTransform: "uppercase",
+  },
+  cancelBtn: {
+    background: "transparent",
+    border: "1px solid #5A3D33",
+    borderRadius: 3,
+    padding: "8px 12px",
+    color: "#C0705C",
+    fontFamily: "sans-serif",
+    fontSize: 11,
+    cursor: "pointer",
+    whiteSpace: "nowrap",
   },
 };
