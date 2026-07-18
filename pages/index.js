@@ -258,6 +258,7 @@ function StepServices({ services, selected, onSelect }) {
           </button>
         ))}
       </div>
+      <a href="/produtos" style={styles.productsLink}>Ver produtos da barbearia →</a>
     </div>
   );
 }
@@ -402,6 +403,7 @@ const styles = {
   optionTitle: { fontFamily: "sans-serif", fontSize: 14, color: "#E8DDD0" },
   optionSub: { fontFamily: "sans-serif", fontSize: 11, color: "#8A8378", marginTop: 3 },
   optionPrice: { fontFamily: "sans-serif", fontSize: 14, color: "#C9924A" },
+  productsLink: { display: "block", textAlign: "center", fontFamily: "sans-serif", fontSize: 12, color: "#8A8378", marginTop: 20, textDecoration: "none" },
   grid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 },
   timeCell: { display: "flex", alignItems: "center", justifyContent: "center", background: "transparent", border: "1px solid #2A2622", borderRadius: 3, padding: "12px 8px", fontFamily: "sans-serif", fontSize: 13, cursor: "pointer" },
   summaryBox: { background: "#221E18", borderRadius: 3, padding: "10px 14px", marginBottom: 16 },
