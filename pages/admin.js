@@ -2,12 +2,27 @@ import React, { useState, useEffect } from "react";
 import { supabase } from "../lib/supabaseClient";
 
 export default function Admin() {
+  const [authenticated, setAuthenticated] = useState(false);
+  const [passwordInput, setPasswordInput] = useState("");
+  const [passwordError, setPasswordError] = useState(false);
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [shopName, setShopName] = useState("");
 
+  const checkPassword = () => {
+    const correctPassword = process.env.NEXT_PUBLIC_ADMIN_PASSWORD;
+    if (passwordInput === correctPassword) {
+      setAuthenticated(true);
+      setPasswordError(false);
+    } else {
+      setPasswordError(true);
+    }
+  };
+
   useEffect(() => {
+    if (!authenticated) return;
+
     async function loadAppointments() {
       const { data: shops } = await supabase.from("barbershops").select("*").limit(1);
 
@@ -42,7 +57,7 @@ export default function Admin() {
     }
 
     loadAppointments();
-  }, []);
+  }, [authenticated]);
 
   const grouped = {};
   appointments.forEach((a) => {
@@ -51,6 +66,26 @@ export default function Admin() {
     if (!grouped[key]) grouped[key] = [];
     grouped[key].push(a);
   });
+
+  if (!authenticated) {
+    return (
+      <div style={styles.page}>
+        <div style={styles.loginBox}>
+          <h1 style={styles.title}>Acesso restrito</h1>
+          <input
+            type="password"
+            placeholder="Senha"
+            value={passwordInput}
+            onChange={(e) => setPasswordInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && checkPassword()}
+            style={styles.input}
+          />
+          {passwordError && <p style={styles.errorText}>Senha incorreta.</p>}
+          <button onClick={checkPassword} style={styles.loginBtn}>Entrar</button>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -114,6 +149,42 @@ const styles = {
   container: {
     maxWidth: 600,
     margin: "0 auto",
+  },
+  loginBox: {
+    maxWidth: 320,
+    margin: "80px auto 0",
+    display: "flex",
+    flexDirection: "column",
+    gap: 12,
+  },
+  input: {
+    width: "100%",
+    background: "#17140F",
+    border: "1px solid #2A2622",
+    borderRadius: 3,
+    padding: "13px 14px",
+    color: "#E8DDD0",
+    fontFamily: "sans-serif",
+    fontSize: 14,
+    boxSizing: "border-box",
+  },
+  loginBtn: {
+    background: "#C9924A",
+    border: "none",
+    borderRadius: 3,
+    padding: "13px",
+    color: "#0F0D0B",
+    fontFamily: "sans-serif",
+    fontSize: 13,
+    letterSpacing: "0.05em",
+    textTransform: "uppercase",
+    cursor: "pointer",
+  },
+  errorText: {
+    color: "#C05C4A",
+    fontFamily: "sans-serif",
+    fontSize: 12,
+    margin: 0,
   },
   title: {
     color: "#E8DDD0",
